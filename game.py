@@ -97,7 +97,7 @@ def display_color_token(x):
 
         elif gamestate[x][y] == 2:
             ch = 'O'
-            color = bcolors.OKCYAN
+            color = bcolors.WARNING
             color_end = bcolors.ENDC
 
         else:
@@ -201,9 +201,9 @@ def update():
             clearConsole()
             display()
             if current_player == PLAYER_ONE:
-                print('\n' + ' ' * 17 + '!---- PLAYER ONE WON ----!')
+                print('\n' + ' ' * 15 + '!---- PLAYER ONE WON ----!')
             else:
-                print('\n' + ' ' * 17 + '!---- PLAYER TWO WON ----!')
+                print('\n' + ' ' * 15 + '!---- PLAYER TWO WON ----!')
             break
 
         clearConsole()
