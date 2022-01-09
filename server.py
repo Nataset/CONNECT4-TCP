@@ -1,7 +1,7 @@
 import socket
 import threading
 
-PORT = 8085
+PORT = 8080
 HOSTNAME = 'localhost'
 WIDTH = 7
 HEIGHT = 6
@@ -10,8 +10,18 @@ PLAYER_TWO = '200'
 MAX_CLIENTS = 2
 
 game_turn = 0
+player_turn = PLAYER_ONE
 player_count = 0
-players = {PLAYER_ONE: '', PLAYER_TWO: ''}
+players = {
+    PLAYER_ONE: {
+        'socket': '',
+        'address': '',
+        'lastmove': '',
+    }, PLAYER_TWO: {
+        'socket': '',
+        'address': '',
+        'lastmove': '',
+    }}
 
 
 def init():
@@ -40,15 +50,50 @@ def max_clients_handle(socket):
 
 
 def playerone_join_handle(socket, address):
-    print(f"Connection from {address}, assign to player ONE")
+    print(f"Connection from {address}, assign as player ONE")
     socket.send("Your are player ONE".encode())
 
 
 def playertwo_join_handle(socket, address):
-    print(f"Connection from {address}, assign to player TWO")
+    global game_turn
+    print(f"Connection from {address}, assign as player TWO")
     socket.send("Your are player TWO".encode())
-    players[0]['socket'].send("start game".encode())
-    players[1]['socket'].send("start game".encode())
+    players[PLAYER_ONE]['socket'].send("start game".encode())
+    players[PLAYER_TWO]['socket'].send("start game".encode())
+    game_turn += 1
+    send_TCP(PLAYER_ONE, '301')
+    send_TCP(PLAYER_TWO, '301')
+
+
+def player_one_req_handle():
+    global player_count
+    while True:
+        data = players[PLAYER_ONE]['socket'].recv(2048)
+        if not data:
+            print(f'lost connection from {PLAYER_ONE}')
+            player_count -= 1
+            break
+        else:
+            data = parse_req(data.decode())
+            if data[0][1] == '200':
+                print("Player ONE Receive Data")
+            elif data[0][1] == '401':
+                tmp = data[1][0].split(":")
+                print(tmp)
+
+
+def player_two_req_handle():
+    global player_count
+    while True:
+        data = players[PLAYER_TWO]['socket'].recv(2048)
+        if not data:
+            print(f'lost connection from {PLAYER_TWO}')
+            player_count -= 1
+            break
+        else:
+            data = parse_req(data.decode())
+            if data[0][1] == '200':
+                print("Player TWO Receive Data")
 
 
 def client_handle(client_socket, address):
@@ -57,37 +102,25 @@ def client_handle(client_socket, address):
         max_clients_handle(client_socket)
     elif player_count == 0:
         player_count += 1
-        players[PLAYER_ONE] = {"socket": socket, "address": address}
+        players[PLAYER_ONE]['socket'] = client_socket
+        players[PLAYER_ONE]['address'] = address
         playerone_join_handle(client_socket, address)
-        player_req_handle(PLAYER_ONE)
+        player_one_req_handle()
 
     elif player_count == 1:
         player_count += 1
-        players[PLAYER_TWO] = {"socket": client_socket, "address": address}
+        players[PLAYER_TWO]['socket'] = client_socket
+        players[PLAYER_TWO]['address'] = address
         playertwo_join_handle(client_socket, address)
-        player_req_handle(PLAYER_TWO)
-
-
-def player_req_handle(player_no):
-    if player_no == PLAYER_ONE:
-        myplayer = PLAYER_TWO
-        player_socket = players[PLAYER_ONE]['socket']
-        enamy_socket = players[PLAYER_TWO]['socket']
-
-    elif player_no == PLAYER_TWO:
-        myplayer = PLAYER_TWO
-        player_socket = players[PLAYER_TWO]['socket']
-        enamy_socket = players[PLAYER_ONE]['socket']
-
-    while True:
-        data = player_socket.recv(2048)
-        if not data:
-            print(f'lost connection from {myplayer}')
-            break
+        player_two_req_handle()
 
 
 def send_TCP(player_no, status_code):
-    if status_code == '201':
+
+    if status_code == '200':
+        data = "TNP/1.0 200 OK!_server"
+
+    elif status_code == '201':
         data = "TNP/1.0 201 OK!_Player_ONE"
 
     elif status_code == '202':
@@ -97,9 +130,24 @@ def send_TCP(player_no, status_code):
         data = "TNP/1.0 300 Start_Game"
 
     elif status_code == '301':
-        data = f"TNP/1.0 301 Update_Game_State\nTURN:{str(game_turn)} PLAYER_TURN:{PLAYER_ONE}\n{array_to_string(gamestate)}"
+        data = f"TNP/1.0 301 Update_Game_State\nGAME_TURN:{str(game_turn)} PLAYER_TURN:{player_turn}\n{array_to_string(gamestate)}"
 
-    players[player_no].send(data.encode())
+    elif status_code == '401':
+        data = f"TNP/1.0 401 Player_ONE_move\nMOVE:{players[PLAYER_ONE]['lastmove']}"
+
+    elif status_code == '401':
+        data = f"TNP/1.0 401 Player_TWO_move\nMOVE:{players[PLAYER_TWO]['lastmove']}"
+
+    elif status_code == '500':
+        data = f"TNP/1.0 500 UNKNOWN_ERROR"
+
+    elif status_code == '501':
+        data = f"TNP/1.0 501 Player_ONE_disconnect"
+
+    elif status_code == '502':
+        data = f"TNP/1.0 501 Player_TWO_disconnect"
+
+    players[player_no]['socket'].send(data.encode())
 
 
 def array_to_string(array):
