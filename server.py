@@ -35,6 +35,22 @@ def init():
     gamestate = [[0 for x in range(WIDTH)] for y in range(HEIGHT)]
 
 
+def insert_token(insert):
+    global gamestate
+    insert = insert - 1
+    y = 0
+
+    if gamestate[0][insert] != 0:
+        return False
+
+    while True:
+        if y >= HEIGHT - 1 or gamestate[y + 1][insert] != 0:
+            gamestate[y][insert] = 1 if player_turn == PLAYER_ONE else 2
+            return True
+        else:
+            y += 1
+
+
 def conn_handle():
     while True:
         client_socket, address = server_socket.accept()
@@ -66,7 +82,7 @@ def playertwo_join_handle(socket, address):
 
 
 def player_one_req_handle():
-    global player_count
+    global player_count, player_turn, game_turn
     while True:
         data = players[PLAYER_ONE]['socket'].recv(2048)
         if not data:
@@ -79,11 +95,17 @@ def player_one_req_handle():
                 print("Player ONE Receive Data")
             elif data[0][1] == '401':
                 tmp = data[1][0].split(":")
-                print(tmp)
+                lastmove = int(tmp[1])
+                players[PLAYER_ONE]['lastmove'] = lastmove
+                insert_token(lastmove)
+                game_turn += 1
+                player_turn = PLAYER_TWO
+                send_TCP(PLAYER_ONE, '301')
+                send_TCP(PLAYER_TWO, '301')
 
 
 def player_two_req_handle():
-    global player_count
+    global player_count, player_turn, game_turn
     while True:
         data = players[PLAYER_TWO]['socket'].recv(2048)
         if not data:
@@ -94,6 +116,15 @@ def player_two_req_handle():
             data = parse_req(data.decode())
             if data[0][1] == '200':
                 print("Player TWO Receive Data")
+            elif data[0][1] == '401':
+                tmp = data[1][0].split(":")
+                lastmove = int(tmp[1])
+                players[PLAYER_TWO]['lastmove'] = lastmove
+                insert_token(lastmove)
+                game_turn += 1
+                player_turn = PLAYER_ONE
+                send_TCP(PLAYER_ONE, '301')
+                send_TCP(PLAYER_TWO, '301')
 
 
 def client_handle(client_socket, address):
