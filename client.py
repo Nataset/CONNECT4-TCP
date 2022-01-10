@@ -35,6 +35,38 @@ def clearConsole():
     os.system(command)
 
 
+def start_scene():
+    welcomeText = '''
+    #####################################################################################
+    #####################################################################################
+    
+
+                                                                                ####
+    ########  ########  #     #  #     #  ########  ########  ########         ## ##
+    #         #      #  ##    #  ##    #  #         #            ##           ##  ##
+    #         #      #  # #   #  # #   #  #         #            ##          ##   ##
+    #         #      #  #  #  #  #  #  #  ######    #            ##         ##    ##
+    #         #      #  #   # #  #   # #  #         #            ##        ##     ##
+    #         #      #  #    ##  #    ##  #         #            ##       ##      ##
+    ########  ########  #     #  #     #  ########  ########     ##      ###############
+                                                                                  ##
+                                                                                  ##
+
+                    #*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*#
+                    # A simple command line connect 4 game in Python. #
+                    #*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*#                                                       
+
+                                 Press Enter to Continue
+                                =========================
+                            
+    #####################################################################################
+    #####################################################################################
+    '''
+
+    clearConsole()
+    input(welcomeText)
+
+
 def display_color_token(x):
     for y in range(WIDTH):
         ch = ' '
@@ -144,7 +176,6 @@ def parse_req(message):
 
 
 def send_TCP(status_code):
-    print(status_code == '400', client_player == PLAYER_ONE)
     if status_code == '200':
         data = "TNP/1.0 200 OK!_server"
 
@@ -161,7 +192,7 @@ def send_TCP(status_code):
         data = f"TNP/1.0 401 Player_ONE_move\nMOVE:{lastmove}"
 
     elif status_code == '400' and client_player == PLAYER_TWO:
-        data = f"TNP/1.0 401 Player_TWO_move\nMOVE:{lastmove}"
+        data = f"TNP/1.0 402 Player_TWO_move\nMOVE:{lastmove}"
 
     elif status_code == '500':
         data = f"TNP/1.0 500 UNKNOWN_ERROR"
@@ -170,7 +201,7 @@ def send_TCP(status_code):
         data = f"TNP/1.0 501 Player_ONE_disconnect"
 
     elif status_code == '502':
-        data = f"TNP/1.0 501 Player_TWO_disconnect"
+        data = f"TNP/1.0 502 Player_TWO_disconnect"
 
     client_socket.send(data.encode())
 
@@ -178,50 +209,78 @@ def send_TCP(status_code):
 def main():
     global gamestate, client_socket, lastmove, client_player
 
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((HOSTNAME, PORT))
+    start_scene()
 
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        client_socket.connect((HOSTNAME, PORT))
+    except socket.error:
+        print("CAN'T CONNECT TO SERVER, SERVER MAYBE DOWN")
     while True:
         try:
             data = client_socket.recv(2048)
-        except socket.error:
-            break
+        except:
+            clearConsole()
+            print("DISCONNECT")
+            return
         if not data:
-            print(f"Connection Lost")
-            break
+            clearConsole()
+            print(f"CONNECTION LOST")
+            return
         else:
-            print(f"Recieved: " + data.decode())
-            if data.decode() == 'Your are player ONE':
+            data = parse_req(data.decode())
+            if data[0][1] == '201':
                 client_player = PLAYER_ONE
-                print("waiting for another player ...")
-            elif data.decode() == 'Your are player TWO':
+                clearConsole()
+                output_text = '\n' + ' ' * 8 + \
+                    '!---- Waiting for another Player ----!'
+                print(output_text)
+            elif data[0][1] == '202':
                 client_player = PLAYER_TWO
-            elif data.decode() == "start game":
-                send_TCP('200')
-            else:
-                data = parse_req(data.decode())
-                if data[0][1] == '301':
-                    clearConsole()
-                    gamestate = string_to_array(data[2][0])
-                    display()
-                    tmp = data[1][1].split(':')
-                    player_turn = tmp[1]
-                    if client_player == player_turn:
-                        while True:
-                            input_text = '\n' + ' ' * 18 + \
-                                '!---- YOUR TURN ----!\n    Please select number between 1-7 to insert token: '
-                            insert_index = input(input_text)
-                            if not check_input(insert_index) or not insert_token(int(insert_index)):
-                                display()
-                                continue
+            elif data[0][1] == '301':
+                clearConsole()
+                gamestate = string_to_array(data[2][0])
+                display()
+                tmp = data[1][1].split(':')
+                player_turn = tmp[1]
+                if client_player == player_turn:
+                    while True:
+                        input_text = '\n' + ' ' * 18 + \
+                            '!---- YOUR TURN ----!\n    Please select number between 1-7 to insert token: '
+                        insert_index = input(input_text)
+                        if not check_input(insert_index) or not insert_token(int(insert_index)):
+                            display()
+                            continue
 
-                            lastmove = insert_index
-                            break
-                        send_TCP('400')
-                    else:
-                        output_text = '\n' + ' ' * 15 + \
-                            '!---- OPPONENT TURN ----!'
-                        print(output_text)
+                        lastmove = insert_index
+                        break
+                    send_TCP('400')
+                else:
+                    output_text = '\n' + ' ' * 15 + \
+                        '!---- OPPONENT TURN ----!'
+                    print(output_text)
+                    continue
+            elif data[0][1] == '302':
+                clearConsole()
+                gamestate = string_to_array(data[2][0])
+                display()
+                tmp = data[1][1].split(":")
+                winner_is = tmp[1]
+                if client_player == winner_is:
+                    client_socket.close()
+                    input("\n" + ' ' * 15 + "!--------YOU WIN--------!\n\n" +
+                          ' ' * 8 + '###### Press Enter to close game ######\n')
+                    return
+                else:
+                    client_socket.close()
+                    input("\n" + ' ' * 15 + "!--------YOU LOSE-------!\n\n" +
+                          ' ' * 8 + '###### Press Enter to close game ######\n')
+                    return
+            elif data[0][1] == '501' or data[0][1] == '502':
+                clearConsole()
+                print('OPPONENT DISCONNECT')
+                client_socket.close()
+                return
 
 
 if __name__ == "__main__":
