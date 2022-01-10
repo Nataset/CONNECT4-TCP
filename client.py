@@ -1,8 +1,6 @@
 import socket
 import os
 
-from game import check_winner
-
 
 PORT = 8080
 HOSTNAME = 'localhost'
@@ -176,32 +174,11 @@ def parse_req(message):
 
 
 def send_TCP(status_code):
-    if status_code == '200':
-        data = "TNP/1.0 200 OK!_server"
-
-    elif status_code == '201':
-        data = "TNP/1.0 201 OK!_Player_ONE"
-
-    elif status_code == '202':
-        data = "TNP/1.0 202 OK!_Player_TWO"
-
-    elif status_code == '300':
-        data = "TNP/1.0 300 Start_Game"
-
-    elif status_code == '400' and client_player == PLAYER_ONE:
+    if status_code == '400' and client_player == PLAYER_ONE:
         data = f"TNP/1.0 401 Player_ONE_move\nMOVE:{lastmove}"
 
     elif status_code == '400' and client_player == PLAYER_TWO:
         data = f"TNP/1.0 402 Player_TWO_move\nMOVE:{lastmove}"
-
-    elif status_code == '500':
-        data = f"TNP/1.0 500 UNKNOWN_ERROR"
-
-    elif status_code == '501':
-        data = f"TNP/1.0 501 Player_ONE_disconnect"
-
-    elif status_code == '502':
-        data = f"TNP/1.0 502 Player_TWO_disconnect"
 
     client_socket.send(data.encode())
 
