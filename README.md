@@ -26,3 +26,5 @@ If you what to run this project in the real server don't forget to change HOSTNA
 HOSTNAME = "localhost"
 PORT = 8080
 ```
+## DEMO
+![Alt Text](https://raw.githubusercontent.com/Nataset/CONNECT4-TCP/main/connect4_demo.gif)
