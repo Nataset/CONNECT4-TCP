@@ -1,3 +1,7 @@
+# This is a singleplayer version of connect4 game
+# Nataset Tanabodee 6210402411
+# Nattapol Kumsang 6210406556
+
 import os
 
 WIDTH = 7

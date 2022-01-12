@@ -1,3 +1,6 @@
+# Nataset Tanabodee 6210402411
+# Nattapol Kumsang 6210406556
+
 import socket
 import threading
 
@@ -246,11 +249,11 @@ def send_TCP(player_no, status_code):
 
         data = f"TNP/1.0 302 Game_End\nGAME_TURN:{str(game_turn)} WINNER:{winner}\n{array_to_string(gamestate)}"
 
-    elif status_code == '401':
-        data = f"TNP/1.0 401 Player_ONE_move\nMOVE:{players[PLAYER_ONE]['lastmove']}"
+    # elif status_code == '401':
+    #     data = f"TNP/1.0 401 Player_ONE_move\nMOVE:{players[PLAYER_ONE]['lastmove']}"
 
-    elif status_code == '402':
-        data = f"TNP/1.0 402 Player_TWO_move\nMOVE:{players[PLAYER_TWO]['lastmove']}"
+    # elif status_code == '402':
+    #     data = f"TNP/1.0 402 Player_TWO_move\nMOVE:{players[PLAYER_TWO]['lastmove']}"
 
     elif status_code == '501':
         data = f"TNP/1.0 501 Player_ONE_disconnect"
